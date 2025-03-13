@@ -16,7 +16,7 @@ from selenium.webdriver.chrome.options import Options
 def generate_text(prompt: str):
     """Generates text using the Gemini API."""
     try:
-         response = model.generate_content(prompt)
+        response = model.generate_content(prompt)
     except Exception as e:
         return f"An error occurred: {e}"
     return response.text
