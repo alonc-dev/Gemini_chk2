@@ -2,6 +2,14 @@ import google.generativeai as genai
 import os
 import apikey
 
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+
+
 ###############################################
 # ask gemini
 ###############################################
@@ -41,6 +49,69 @@ def generate_content_with_images(prompt, image_paths):
     except Exception as e:
         return f"An error occurred: {e}"
 
+
+
+
+###############################################
+def read_whatsapp_messages(contact_name):
+    """
+    Reads the latest messages from a specific contact on WhatsApp Web.
+
+    Args:
+        contact_name: The name of the contact to read messages from.
+
+    Returns:
+        A list of messages (strings), or None if an error occurred.
+    """
+    try:
+        chrome_options = Options()
+        #chrome_options.add_argument("--headless") # Uncomment for headless mode (no browser window)
+        driver = webdriver.Chrome(options=chrome_options) # Ensure chromedriver is in your PATH
+
+        driver.get("https://web.whatsapp.com/")
+
+        # Wait for the QR code to be scanned and the page to load
+        input("Scan the QR code and press Enter when WhatsApp Web is loaded...") # Replace with more robust wait if needed.
+
+        # Find the search bar and search for the contact
+        search_box = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"][@data-tab="3"]'))
+        )
+        search_box.clear()
+        search_box.send_keys(contact_name)
+
+        # Wait for the contact to appear and click on it
+        contact = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, f'//span[@title="{contact_name}"]'))
+        )
+        contact.click()
+
+        # Wait for the chat to load
+        time.sleep(2) # adjust as needed
+
+        # Find all message elements
+        message_elements = driver.find_elements(By.CSS_SELECTOR, 'div.message-in, div.message-out')
+
+        messages = []
+        for message_element in message_elements:
+            try:
+                message_text_element = message_element.find_element(By.CSS_SELECTOR, 'span.selectable-text')
+                message_text = message_text_element.text
+                messages.append(message_text)
+            except:
+                # Handle cases where messages have media, etc.
+                pass
+
+        return messages
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+    finally:
+        try:
+            driver.quit() #close the browser even on error.
+        except:
+            pass #if driver never existed.
 
 
 ###############################################
@@ -85,6 +156,15 @@ def main():
     #result_image = generate_content_with_images("Describe the images.", ["bonnie.jpg"])
     #print("\nImage Description:\n", result_image)
     print("-- End --")
+
+    contact_name = "Test"  # Replace with the actual contact name
+    messages = read_whatsapp_messages(contact_name)
+
+    if messages:
+        print(f"Messages from {contact_name}:")
+        for message in messages:
+            print(message)
+
 
 
 ###############################################
